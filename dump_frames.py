@@ -82,7 +82,7 @@ def frames_already_dumped(video_path,
 
 def dump_frames(video_path, output_directory, frames_per_second):
     """Dump frames at frames_per_second from a video to output_directory.
-    
+
     If frames_per_second is None, the clip's fps attribute is used instead."""
     clip = VideoFileClip(video_path)
     info_path = '{}/info.json'.format(output_directory)
