@@ -44,7 +44,7 @@ def frames_already_dumped(video_path,
         expected_frames_per_second (num)
         expected_info_path (str)
         expected_name_format (str)
-        expected_duration (num)
+        expected_duration (num): Expected dration in seconds.
     """
     # Ensure that info file exists.
     if not os.path.isfile(expected_info_path):
@@ -68,7 +68,7 @@ def frames_already_dumped(video_path,
         offset_if_one_indexed = 1
     expected_frame_paths = [
         expected_name_format % (i + offset_if_one_indexed)
-        for i in range(int(math.floor(expected_duration /
+        for i in range(int(math.floor(expected_duration *
                                       expected_frames_per_second)))
     ]
     frames_exist = all([os.path.exists(frame_path)
