@@ -105,6 +105,11 @@ def main():
 
     args = parser.parse_args()
 
+    # TODO(achald): Allow specifying either one, and resize the other based on
+    # aspect ratio.
+    if ('resize_width' in args) != ('resize_height' in args):
+        raise ValueError('Both resize_width and resize_height must be '
+                         'specified if either is specified.')
     map_size = 500e9
 
     batch_size = 10000
