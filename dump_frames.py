@@ -135,7 +135,7 @@ def main():
     with open(video_list) as f:
         for line in f:
             video_path = line.strip()
-            base_filename = os.path.basename(video_path)
+            base_filename = os.path.splitext(os.path.basename(video_path))[0]
             output_video_directory = os.path.join(output_directory,
                                                   base_filename)
             if not os.path.isdir(output_video_directory):
