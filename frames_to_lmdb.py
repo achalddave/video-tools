@@ -100,14 +100,14 @@ def main():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('frames_root')
     parser.add_argument('output_lmdb')
-    parser.add_argument('--resize_width', default=0, nargs='?', type=int)
-    parser.add_argument('--resize_height', default=0, nargs='?', type=int)
+    parser.add_argument('--resize_width', default=None, nargs='?', type=int)
+    parser.add_argument('--resize_height', default=None, nargs='?', type=int)
 
     args = parser.parse_args()
 
     # TODO(achald): Allow specifying either one, and resize the other based on
     # aspect ratio.
-    if ('resize_width' in args) != ('resize_height' in args):
+    if (args.resize_width is None) != (args.resize_height is None):
         raise ValueError('Both resize_width and resize_height must be '
                          'specified if either is specified.')
     map_size = 500e9
