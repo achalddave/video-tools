@@ -98,17 +98,26 @@ def dump_frames(video_path, output_directory, frames_per_second):
         logging.info('Frames for {} exist, skipping...'.format(video_path))
         return
 
-    clip.write_images_sequence(
-        name_format.format(output_directory),
-        fps=frames_per_second)
-    info = {'frames_per_second': frames_per_second,
-            'input_video_path': os.path.abspath(video_path)}
-    with open(info_path, 'wb') as info_file:
-        json.dump(info, info_file)
+    successfully_wrote_images = False
+    try:
+        clip.write_images_sequence(
+            name_format.format(output_directory),
+            fps=frames_per_second)
+        successfully_wrote_images = True
+    except Exception as e:
+        logging.error("Failed to dump images for %s", video_path)
+        logging.error(e)
 
-    if not frames_already_dumped_helper():
-        logging.error("Images for {} don't seem to be dumped properly!".format(
-            video_path))
+    if successfully_wrote_images:
+        info = {'frames_per_second': frames_per_second,
+                'input_video_path': os.path.abspath(video_path)}
+        with open(info_path, 'wb') as info_file:
+            json.dump(info, info_file)
+
+        if not frames_already_dumped_helper():
+            logging.error(
+                "Images for {} don't seem to be dumped properly!".format(
+                    video_path))
 
 def dump_frames_star(args):
     """Calls dump_frames after unpacking arguments."""
