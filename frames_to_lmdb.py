@@ -53,7 +53,7 @@ def frame_path_to_key(frame_path):
     return '{}-{}'.format(video_name, frame_number)
 
 
-def load_image_datum((image_path, resize_height=None, resize_width=None)):
+def load_image_datum(image_path, resize_height=None, resize_width=None):
     """Load an image in a Caffe datum in BGR order.
 
     Note that this method takes a tuple as an argument so it can be easily used
@@ -83,11 +83,15 @@ def load_image_datum((image_path, resize_height=None, resize_width=None)):
     return caffe.io.array_to_datum(image).SerializeToString()
 
 
+def load_image_datum_helper(args):
+    """Wrapper for load_image_datum for use with multiprocessing."""
+    return load_image_datum(*args)
+
 def load_image_batch(pool, frame_paths, resize_height, resize_width):
     """Loads a batch of images by calling load_image_datum in parallel."""
     job_arguments = [(frame_path, resize_height, resize_width)
                      for frame_path in frame_paths]
-    return pool.map(load_image_datum, job_arguments)
+    return pool.map(load_image_datum_star, job_arguments)
 
 
 def main():
