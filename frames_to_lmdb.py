@@ -141,9 +141,9 @@ def main():
         # Usually, Python garbage collects on its own just fine. In this case,
         # it seems it isn't deleting images_batch until after the next
         # images_batch is finished loading (but this is just a conjecture).
+        lmdb_environment.close()
         del images_batch
 
-    lmdb_environment.close()
 
 if __name__ == "__main__":
     main()
