@@ -65,9 +65,6 @@ def frame_path_to_key(frame_path):
 def load_image_datum(image_path, resize_height=None, resize_width=None):
     """Load an image in a Caffe datum in BGR order.
 
-    Note that this method takes a tuple as an argument so it can be easily used
-    as an arugment to multiprocessing.pool().map.
-
     Args:
         image_path (str): Path to an image.
         resize_height (int): Height to resize an image to. If 0 or None, the
@@ -123,6 +120,7 @@ def main():
 
     batch_size = 10000
 
+    print 'Loading frame paths.'
     frame_path_key_pairs = [
         (frame_path, frame_path_to_key(frame_path))
         for frame_path in glob.iglob('{}/*/*.png'.format(args.frames_root))
