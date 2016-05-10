@@ -29,6 +29,22 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
+def parse_frame_path(frame_path):
+    """Convert an absolute frame path to a (video name, frame number) tuple.
+
+    >>> parse_frame_path('/a/b/video/frame1.png')
+    ('video', 1)
+    """
+    dirpath, frame_filename = path.split(frame_path)
+    frame_name = path.splitext(frame_filename)[0]
+    video_name = path.split(dirpath)[1]
+    if not video_name: return None
+
+    frame_number = re.match('^frame([0-9]*)$', frame_name)
+    if frame_number is None: return None  # No match
+    frame_number = int(frame_number.group(1))
+
+    return (video_name, frame_number)
 
 def frame_path_to_key(frame_path):
     """Convert an absolute frame path to a formatted frame key.
@@ -41,16 +57,9 @@ def frame_path_to_key(frame_path):
     >>> frame_path_to_key('/a/b/video_1234/whatever')  # Should be None
     >>> frame_path_to_key('/frame1.png')  # Should be None
     """
-    dirpath, frame_filename = path.split(frame_path)
-    frame_name = path.splitext(frame_filename)[0]
-    video_name = path.split(dirpath)[1]
-    if not video_name: return None
-
-    frame_number = re.match('^frame([0-9]*)$', frame_name)
-    if frame_number is None: return None  # No match
-    frame_number = int(frame_number.group(1))
-
-    return '{}-{}'.format(video_name, frame_number)
+    frame_info = parse_frame_path(frame_path)
+    if frame_info is None: return frame_info
+    return '{}-{}'.format(*frame_info)
 
 
 def load_image_datum(image_path, resize_height=None, resize_width=None):
