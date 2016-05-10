@@ -97,7 +97,7 @@ def load_image_batch(pool, frame_paths, resize_height, resize_width):
     """Loads a batch of images by calling load_image_datum in parallel."""
     job_arguments = [(frame_path, resize_height, resize_width)
                      for frame_path in frame_paths]
-    return pool.map(load_image_datum_star, job_arguments)
+    return pool.map(load_image_datum_helper, job_arguments)
 
 
 def main():
