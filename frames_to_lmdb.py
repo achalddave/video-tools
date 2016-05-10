@@ -9,7 +9,7 @@ which in turn contain frames for the video. For example:
             frame2.png
             ...
 
-The only assumption is that frames are named of the form "frame[0-9]*.png".
+The only assumption is that frames are named of the form "frame[0-9]+.png".
 
 Outputs an LMDB containing keys "<video_name>-<frame-number>" and corresponding
 images as values. For example, video1/frame2.png is stored as the key
