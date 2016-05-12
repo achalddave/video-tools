@@ -113,7 +113,7 @@ def main():
     for frame_path_info_pairs_batch in frame_path_info_pairs_batched:
         batch_images = load_image_batch(
             pool, [x[0] for x in frame_path_info_pairs_batch],
-            args.resize_height, args.resize_height)
+            args.resize_height, args.resize_width)
 
         # Convert image arrays to image protocol buffers.
         # We can't return protos from multiprocessing due to pickling issues.

@@ -138,7 +138,7 @@ def main():
         images_batch = load_image_batch(pool,
                                         [x[0]
                                          for x in frame_path_key_pairs_batch],
-                                        args.resize_height, args.resize_height)
+                                        args.resize_height, args.resize_width)
         lmdb_environment = lmdb.open(args.output_lmdb, map_size=int(map_size))
         with lmdb_environment.begin(write=True) as lmdb_transaction:
             for i, (frame_path,
