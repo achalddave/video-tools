@@ -15,6 +15,9 @@ Outputs an LMDB containing keys "<video_name>-<frame-number>" and corresponding
 images as values. For example, video1/frame2.png is stored as the key
 "video1-2". The images are stored as Caffe's Datum protobuffer messages, in
 BGR order.
+
+TODO(achald): Load images in parallel with saving images, similar to
+frames_to_video_frames_proto_lmdb.py.
 """
 
 import argparse
