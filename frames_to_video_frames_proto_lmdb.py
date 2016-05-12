@@ -18,6 +18,7 @@ VideoFrame as values. For example, video1/frame2.png is stored as the key
 
 import argparse
 import glob
+import logging
 import multiprocessing as mp
 import sys
 
@@ -28,6 +29,10 @@ from tqdm import tqdm
 
 import video_frames_pb2
 from frames_to_caffe_datum_proto_lmdb import parse_frame_path
+
+logging.getLogger().setLevel(logging.INFO)
+logging.basicConfig(format='%(asctime)s.%(msecs).03d: %(message)s',
+                    datefmt='%H:%M:%S')
 
 
 def create_video_frame(video_name, frame_index, image_proto):
@@ -65,15 +70,32 @@ def load_image(image_path, resize_height=None, resize_width=None):
     return image
 
 
-def load_image_helper(args):
-    return load_image(*args)
+def load_image_async_helper(args):
+    """
+    Load an image as specified by args and stores it in the queue.
+
+    Args:
+        args (tuple): Tuple of (queue, args for load_image)
+    """
+    queue = args[0]
+    image = load_image(*args[1:])
+    queue.put(image)  # Will wait if queue is full.
 
 
-def load_image_batch(pool, frame_paths, resize_height, resize_width):
-    """Loads a batch of images by calling load_image_datum in parallel."""
-    job_arguments = [(frame_path, resize_height, resize_width)
+def load_images_async(queue, num_processes, frame_paths, resize_height,
+                      resize_width):
+    """Loads images by calling load_image_datum in parallel."""
+    job_arguments = [(queue, frame_path, resize_height, resize_width)
                      for frame_path in frame_paths]
-    return pool.map(load_image_helper, job_arguments)
+    pool = mp.Pool(num_processes)
+    return pool.map_async(load_image_async_helper, job_arguments)
+
+
+def image_array_to_proto(image_array):
+    image = video_frames_pb2.Image()
+    image.channels, image.height, image.width = image_array.shape
+    image.data = image_array.tostring()
+    return image
 
 
 def main():
@@ -103,41 +125,41 @@ def main():
         for frame_path in glob.iglob('{}/*/*.png'.format(args.frames_root))
     ]
 
-    frame_path_info_pairs_batched = (
-        frame_path_info_pairs[i:i + batch_size]
-        for i in range(0, len(frame_path_info_pairs), batch_size))
     print 'Loaded frame paths.'
 
-    progress = tqdm(total=len(frame_path_info_pairs))
-    pool = mp.Pool(args.num_processes)
-    for frame_path_info_pairs_batch in frame_path_info_pairs_batched:
-        batch_images = load_image_batch(
-            pool, [x[0] for x in frame_path_info_pairs_batch],
-            args.resize_height, args.resize_width)
+    num_paths = len(frame_path_info_pairs)
+    progress = tqdm(total=num_paths)
 
-        # Convert image arrays to image protocol buffers.
-        # We can't return protos from multiprocessing due to pickling issues.
-        # https://groups.google.com/forum/#!topic/protobuf/VqWJ3BmQXVg
-        for i in range(len(batch_images)):
-            image_array = batch_images[i]
-            image = video_frames_pb2.Image()
-            image.channels, image.height, image.width = image_array.shape
-            image.data = image_array.tostring()
-            batch_images[i] = image
+    mp_manager = mp.Manager()
+    queue = mp_manager.Queue(maxsize=batch_size)
+    frame_paths = [x[0] for x in frame_path_info_pairs]
+    # Spawn threads to load images.
+    load_images_async(queue, args.num_processes, frame_paths,
+                      args.resize_height, args.resize_width)
 
-        video_frames_batch = []
+    path_index = 0
+    loaded_images = False
+    while True:
+        if loaded_images:
+            break
         with lmdb.open(args.output_lmdb, map_size=map_size).begin(
                 write=True) as lmdb_transaction:
-            for i in range(len(frame_path_info_pairs_batch)):
-                video_name, frame_index = frame_path_info_pairs_batch[i][1]
+            for _ in range(batch_size):
+                path_index += 1
+                if path_index >= num_paths:
+                    loaded_images = True
+                    break
+
+                # Convert image arrays to image protocol buffers.
+                image = image_array_to_proto(queue.get())
+
+                video_name, frame_index = frame_path_info_pairs[path_index][1]
                 video_frame_proto = create_video_frame(video_name, frame_index,
-                                                       batch_images[i])
+                                                       image)
                 frame_key = '{}-{}'.format(video_name, frame_index)
                 lmdb_transaction.put(frame_key,
                                      video_frame_proto.SerializeToString())
                 progress.update(1)
-        del batch_images
-        del video_frames_batch
 
 
 if __name__ == "__main__":
