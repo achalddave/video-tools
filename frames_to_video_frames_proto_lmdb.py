@@ -36,6 +36,7 @@ logging.basicConfig(format='%(asctime)s.%(msecs).03d: %(message)s',
 
 
 def create_video_frame(video_name, frame_index, image_proto):
+    """Create VideoFrameProto from arguments."""
     video_frame = video_frames_pb2.VideoFrame()
     video_frame.image.CopyFrom(image_proto)
     video_frame.video_name = video_name
