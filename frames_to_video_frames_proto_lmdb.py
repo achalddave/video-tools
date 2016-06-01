@@ -73,14 +73,17 @@ def load_image(image_path, resize_height=None, resize_width=None):
 
 def load_image_async_helper(args):
     """
-    Load an image as specified by args and stores it in the queue.
+    Load an image as specified by args and stores it and its path in the queue.
+
+    The queue will be filled with (path, image) tuples.
 
     Args:
         args (tuple): Tuple of (queue, args for load_image)
     """
     queue = args[0]
+    frame_path = args[1]
     image = load_image(*args[1:])
-    queue.put(image)  # Will wait if queue is full.
+    queue.put((args[1], image))  # Will wait if queue is full.
 
 
 def load_images_async(queue, num_processes, frame_paths, resize_height,
@@ -119,26 +122,24 @@ def main():
 
     batch_size = 5000
 
-    # Load pairs of the form (frame path, (video name, frame index)), and
-    # create batches..
-    frame_path_info_pairs = [
-        (frame_path, parse_frame_path(frame_path))
+    # Load mapping from frame path to (video name, frame index)).
+    frame_path_info = {
+        frame_path: parse_frame_path(frame_path)
         for frame_path in glob.iglob('{}/*/*.png'.format(args.frames_root))
-    ]
+    }
 
     print 'Loaded frame paths.'
 
-    num_paths = len(frame_path_info_pairs)
+    num_paths = len(frame_path_info)
     progress = tqdm(total=num_paths)
 
     mp_manager = mp.Manager()
     queue = mp_manager.Queue(maxsize=batch_size)
-    frame_paths = [x[0] for x in frame_path_info_pairs]
     # Spawn threads to load images.
-    load_images_async(queue, args.num_processes, frame_paths,
+    load_images_async(queue, args.num_processes, frame_path_info.keys(),
                       args.resize_height, args.resize_width)
 
-    path_index = 0
+    num_stored = 0
     loaded_images = False
     while True:
         if loaded_images:
@@ -146,15 +147,16 @@ def main():
         with lmdb.open(args.output_lmdb, map_size=map_size).begin(
                 write=True) as lmdb_transaction:
             for _ in range(batch_size):
-                path_index += 1
-                if path_index >= num_paths:
+                num_stored += 1
+                if num_stored >= num_paths:
                     loaded_images = True
                     break
 
                 # Convert image arrays to image protocol buffers.
-                image = image_array_to_proto(queue.get())
+                frame_path, image_array = queue.get()
+                image = image_array_to_proto(image_array)
 
-                video_name, frame_index = frame_path_info_pairs[path_index][1]
+                video_name, frame_index = frame_path_info[frame_path]
                 video_frame_proto = create_video_frame(video_name, frame_index,
                                                        image)
                 frame_key = '{}-{}'.format(video_name, frame_index)
