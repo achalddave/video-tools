@@ -8,7 +8,7 @@ import argparse
 import lmdb
 from tqdm import tqdm
 
-from video_util import video_frames_pb2
+from util import video_frames_pb2
 
 
 def write_imageless_frames_batch(read_lmdb, write_lmdb, batch_size, map_size,

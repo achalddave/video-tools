@@ -27,7 +27,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-import video_frames_pb2
+from util import video_frames_pb2
 from frames_to_caffe_datum_proto_lmdb import parse_frame_path
 
 logging.getLogger().setLevel(logging.INFO)

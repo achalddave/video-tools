@@ -13,7 +13,7 @@ from matplotlib import pyplot as plt
 from PIL import Image
 from tqdm import tqdm
 
-from video_util import video_frames_pb2
+from util import video_frames_pb2
 
 map_size = 200e9
 
