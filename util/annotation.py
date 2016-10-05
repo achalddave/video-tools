@@ -28,7 +28,10 @@ def load_annotations_json(annotations_json_path, filter_category=None):
     annotations = collections.defaultdict(list)
     # Extract annotations for category
     for annotation in annotations_list:
-        annotation = Annotation(**annotation)
+        annotation = Annotation(**{
+            fieldname: annotation[fieldname]
+            for fieldname in Annotation._fields
+        })
         annotations[annotation.filename].append(annotation)
     if filter_category is not None:
         annotations = filter_annotations_by_category(annotations,
