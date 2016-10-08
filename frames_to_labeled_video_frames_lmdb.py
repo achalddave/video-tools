@@ -66,14 +66,15 @@ def create_labeled_frame(video_name, frame_index, image_proto, labels,
     return video_frame
 
 
-def load_label_ids(class_mapping_path):
+def load_label_ids(class_mapping_path, one_indexed_labels=False):
     """
     Args:
         class_mapping_path (str): Path to a text file containing ordered list
-            of labels.  Each line should be of the form "<arbitrary_number>
-            <label>". Note: The <arbitrary_number> is ignored (this may
-            correspond to, e.g. the label's ID in THUMOS); the label id is
-            the line number on which the label appears.
+            of labels.  Each line should be of the form "<label_id>
+            <label>".
+        one_indexed_labels (bool): If true, assume that <label_id>s are
+            1-indexed. The output label id will be the input label id minus 1.
+            If false, assume the <label_ids> are 0 indexed.
 
     Returns:
         label_ids (dict): Maps label name to int id. The id is equal to the
@@ -83,8 +84,12 @@ def load_label_ids(class_mapping_path):
     label_ids = {}
     with open(class_mapping_path) as f:
         for i, line in enumerate(f):
-            _, label = line.strip().split(' ')
-            label_ids[label] = i
+            label_id, label = line.strip().split(' ')
+            label_ids[label] = int(label_id)
+            if one_indexed_labels:
+                label_ids[label] -= 1
+    assert sorted(label_ids.values()) == range(len(label_ids)), (
+        'Label ids must be consecutive and start at 0.')
     return label_ids
 
 
@@ -135,11 +140,9 @@ def main():
     parser.add_argument('--class_mapping',
                         required=True,
                         help="""
-                        File containing lines of the form "<class_index>
-                        <class_name>".  The order of lines in this file will
-                        correspond to the order of the labels in the output
-                        label matrix. If a video contains a class not in this
-                        file, it will be ignored.""")
+                        File containing lines of the form "<class_int_id>
+                        <class_name>". The class id are assumed to be
+                        0-indexed unless --one-indexed-labels is specified.""")
     parser.add_argument('--output_lmdb', required=True)
 
     # Optional arguments.
@@ -150,6 +153,13 @@ def main():
                         type=float,
                         help='FPS that frames were extracted at.')
     parser.add_argument('--num_processes', default=16, nargs='?', type=int)
+    parser.add_argument('--one-indexed-labels',
+                        default=False,
+                        action='store_true',
+                        help="""If specified, the input label ids in the class
+                        mapping are assumed to be 1-indexed; the output label
+                        ids will be the input label id minus 1 so that they
+                        are zero-indexed.""")
 
     args = parser.parse_args()
 
@@ -180,7 +190,7 @@ def main():
     # Spawn threads to load images.
     load_images_async(queue, args.num_processes, frame_path_info.keys(),
                       args.resize_height, args.resize_width)
-    label_ids = load_label_ids(args.class_mapping)
+    label_ids = load_label_ids(args.class_mapping, args.one_indexed_labels)
 
     num_stored = 0
     loaded_images = False
