@@ -86,7 +86,9 @@ def load_label_ids(class_mapping_path, one_indexed_labels=False):
     label_ids = {}
     with open(class_mapping_path) as f:
         for i, line in enumerate(f):
-            label_id, label = line.strip().split(' ')
+            details = line.strip().split(' ')
+            label_id = details[0]
+            label = ' '.join(details[1:])
             label_ids[label] = int(label_id)
             if one_indexed_labels:
                 label_ids[label] -= 1
