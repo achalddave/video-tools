@@ -21,6 +21,8 @@ key "video1-2".
 import argparse
 import glob
 import multiprocessing as mp
+import logging
+import sys
 
 import lmdb
 import numpy as np
@@ -163,6 +165,18 @@ def main():
 
     args = parser.parse_args()
 
+    logging_filepath = args.output_lmdb + '.log'
+    log_formatter = logging.Formatter('%(asctime)s.%(msecs).03d: %(message)s',
+                                      datefmt='%H:%M:%S')
+
+    file_handler = logging.FileHandler(logging_filepath)
+    file_handler.setFormatter(log_formatter)
+    logging.getLogger().addHandler(file_handler)
+
+    logging.info('Writing log file to %s', logging_filepath)
+    logging.info('Command line arguments: %s', sys.argv)
+    logging.info('Parsed arguments: %s', args)
+
     # TODO(achald): Allow specifying either one, and resize the other based on
     # aspect ratio.
     if (args.resize_width is None) != (args.resize_height is None):
@@ -178,7 +192,7 @@ def main():
         for frame_path in glob.iglob('{}/*/*.png'.format(args.frames_root))
     }
 
-    print 'Loaded frame paths.'
+    logging.info('Loaded frame paths.')
 
     annotations = load_annotations_json(args.annotations_json)
 
@@ -219,6 +233,7 @@ def main():
                 if num_stored >= num_paths:
                     loaded_images = True
                     break
+    logging.info('Output frames to %s.', args.output_lmdb)
 
 
 if __name__ == "__main__":
