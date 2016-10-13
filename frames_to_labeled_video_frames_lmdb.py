@@ -51,7 +51,7 @@ def collect_frame_labels(file_annotations, frame_index, frames_per_second):
     query_second = float(frame_index) / frames_per_second
     return sorted(list(set(annotation.category
                            for annotation in file_annotations
-                           if annotation.start_seconds < query_second <
+                           if annotation.start_seconds <= query_second <=
                            annotation.end_seconds)))
 
 
