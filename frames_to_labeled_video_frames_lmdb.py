@@ -30,8 +30,9 @@ from PIL import Image
 from tqdm import tqdm
 
 from util.annotation import load_annotations_json
-from frames_to_video_frames_proto_lmdb import (
-    image_array_to_proto, load_images_async, parse_frame_path)
+from frames_to_video_frames_proto_lmdb import (image_array_to_proto,
+                                               load_images_async)
+from frames_to_caffe_datum_proto_lmdb import parse_frame_path
 from util import video_frames_pb2
 
 
