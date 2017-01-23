@@ -32,7 +32,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-def parse_frame_path(frame_path):
+def parse_frame_path(frame_path, frame_prefix='frame'):
     """Convert an absolute frame path to a (video name, frame number) tuple.
 
     >>> parse_frame_path('/a/b/video/frame1.png')
@@ -43,7 +43,7 @@ def parse_frame_path(frame_path):
     video_name = path.split(dirpath)[1]
     if not video_name: return None
 
-    frame_number = re.match('^frame([0-9]*)$', frame_name)
+    frame_number = re.match('^{}([0-9]*)$'.format(frame_prefix), frame_name)
     if frame_number is None: return None  # No match
     frame_number = int(frame_number.group(1))
 
