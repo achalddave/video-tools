@@ -7,21 +7,26 @@ from annotation import (Annotation, annotations_to_frame_labels,
                         filter_annotations_by_category, in_annotation)
 
 
-def get_durations(annotations):
+def get_durations(annotations, in_seconds=False):
     """
     Extract durations from annotations.
 
     Args:
         annotations (dict): Maps filenames to annotations.
+        in_seconds (bool): If true, return durations in units of seconds. By
+            default, the durations are in terms of frames.
 
     Returns:
-        durations (np.array): List of durations (in frames) for all
-            annotations.
+        durations (np.array): List of durations for all annotations.
     """
     durations = []
     for annotations in annotations.values():
-        durations.extend([annotation.end_frame - annotation.start_frame + 1
-                          for annotation in annotations])
+        if in_seconds:
+            durations.extend([annotation.end_seconds - annotation.start_seconds
+                              for annotation in annotations])
+        else:
+            durations.extend([annotation.end_frame - annotation.start_frame + 1
+                              for annotation in annotations])
     return np.asarray(durations)
 
 

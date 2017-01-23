@@ -36,24 +36,38 @@ from frames_to_caffe_datum_proto_lmdb import parse_frame_path
 from util import video_frames_pb2
 
 
-def collect_frame_labels(file_annotations, frame_index, frames_per_second):
+def collect_frame_labels(file_annotations, frame_index, frames_per_second=None,
+                         frame_step=None):
     """Collect list of labels that apply to a particular frame in a file.
 
     Args:
         file_annotations (list of Annotation): Annotations for a particular
             file.
         frame_index (int): Query frame index.
-        frames_per_second (int): Used to convert frame index to time in
-            seconds.
+        frames_per_second (int): If specified, used to convert frame index to
+            time in seconds.
+        frame_step (int): If specified, used to convert frame index to a video
+            frame. For example, if frame_step is 3, then a frame_index of 2 is
+            assumed to be from frame 6 of the video. Exactly one of
+            frames_per_second or frame_step must be specified.
 
     Returns:
         labels (list): List of label strings that apply to this frame.
     """
-    query_second = float(frame_index) / frames_per_second
-    return sorted(list(set(annotation.category
-                           for annotation in file_annotations
-                           if annotation.start_seconds <= query_second <=
-                           annotation.end_seconds)))
+    assert frames_per_second is None != frame_step is None, (
+        "Exactly one of frames_per_second or frame_step must be specified.")
+    if frames_per_second is not None:
+        query_second = float(frame_index) / frames_per_second
+        return sorted(list(set(annotation.category
+                               for annotation in file_annotations
+                               if annotation.start_seconds <= query_second <=
+                               annotation.end_seconds)))
+    else: # frame_step is not None
+        query_frame = float(frame_index) * frame_step
+        return sorted(list(set(annotation.category
+                               for annotation in file_annotations
+                               if annotation.start_frame <= query_frame <=
+                               annotation.end_frame)))
 
 
 def create_labeled_frame(video_name, frame_index, image_proto, labels,
@@ -154,9 +168,16 @@ def main():
     parser.add_argument('--resize_width', default=None, nargs='?', type=int)
     parser.add_argument('--resize_height', default=None, nargs='?', type=int)
     parser.add_argument('--frames_per_second',
-                        default=10,
+                        default=0,
                         type=float,
                         help='FPS that frames were extracted at.')
+    parser.add_argument('--frame_step',
+                        default=0,
+                        type=float,
+                        help="""Frame step that frames were extracted at.
+                        E.g., --frame_step=2 implies every other frame was
+                        extracted. Either frame_step or frames_per_second must
+                        be specified.""")
     parser.add_argument('--num_processes', default=16, nargs='?', type=int)
     parser.add_argument('--one-indexed-labels',
                         default=False,
@@ -187,6 +208,9 @@ def main():
                          'specified if either is specified.')
     map_size = int(500e9)
 
+    assert (args.frames_per_second == 0) != (args.frame_step == 0), (
+        "Exactly one of --frames_per_second or --frame_step "
+        "must be specified.")
     batch_size = 10000
 
     # Load mapping from frame path to (video name, frame index)).
@@ -216,16 +240,20 @@ def main():
             break
         with lmdb.open(args.output_lmdb, map_size=map_size).begin(
                 write=True) as lmdb_transaction:
-            # Convert image arrays to image protocol buffers.
             for _ in range(batch_size):
                 # Convert image arrays to image protocol buffers.
                 frame_path, image_array = queue.get()
                 image = image_array_to_proto(image_array)
 
                 video_name, frame_index = frame_path_info[frame_path]
-                labels = collect_frame_labels(annotations[video_name],
-                                              frame_index - 1,
-                                              args.frames_per_second)
+                if args.frames_per_second != 0:
+                    labels = collect_frame_labels(annotations[video_name],
+                                                  frame_index - 1,
+                                                  args.frames_per_second)
+                else: # args.frame_step != 0
+                    labels = collect_frame_labels(annotations[video_name],
+                                                  frame_index - 1,
+                                                  args.frame_step)
                 video_frame_proto = create_labeled_frame(
                     video_name, frame_index, image, labels, label_ids)
                 frame_key = '{}-{}'.format(video_name, frame_index)
