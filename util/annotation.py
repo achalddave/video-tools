@@ -97,6 +97,69 @@ def annotations_to_frame_labels(annotations, num_frames):
     return frame_groundtruth.astype(int)
 
 
+def collect_frame_labels(file_annotations, frame_index, frames_per_second=None,
+                         frame_step=None):
+    """Collect list of labels that apply to a particular frame in a file.
+
+    Args:
+        file_annotations (list of Annotation): Annotations for a particular
+            file.
+        frame_index (int): Query frame index.
+        frames_per_second (int): If specified, used to convert frame index to
+            time in seconds.
+        frame_step (int): If specified, used to convert frame index to a video
+            frame. For example, if frame_step is 3, then a frame_index of 2 is
+            assumed to be from frame 6 of the video. Exactly one of
+            frames_per_second or frame_step must be specified.
+
+    Returns:
+        labels (list): List of label strings that apply to this frame.
+    """
+    assert (frames_per_second is None) != (frame_step is None), (
+        "Exactly one of frames_per_second or frame_step must be specified.")
+    if frames_per_second is not None:
+        query_second = float(frame_index) / frames_per_second
+        return sorted(list(set(annotation.category
+                               for annotation in file_annotations
+                               if annotation.start_seconds <= query_second <=
+                               annotation.end_seconds)))
+    else: # frame_step is not None
+        query_frame = float(frame_index) * frame_step
+        return sorted(list(set(annotation.category
+                               for annotation in file_annotations
+                               if annotation.start_frame <= query_frame <=
+                               annotation.end_frame)))
+
+
+def load_label_ids(class_mapping_path, one_indexed_labels=False):
+    """
+    Args:
+        class_mapping_path (str): Path to a text file containing ordered list
+            of labels.  Each line should be of the form "<label_id>
+            <label>".
+        one_indexed_labels (bool): If true, assume that <label_id>s are
+            1-indexed. The output label id will be the input label id minus 1.
+            If false, assume the <label_ids> are 0 indexed.
+
+    Returns:
+        label_ids (dict): Maps label name to int id. The id is equal to the
+            (0-indexed) line number on which the label appeared in the class
+            mapping file. Note that these are *not* the ids from THUMOS
+    """
+    label_ids = {}
+    with open(class_mapping_path) as f:
+        for i, line in enumerate(f):
+            details = line.strip().split(' ')
+            label_id = details[0]
+            label = ' '.join(details[1:])
+            label_ids[label] = int(label_id)
+            if one_indexed_labels:
+                label_ids[label] -= 1
+    assert sorted(label_ids.values()) == range(len(label_ids)), (
+        'Label ids must be consecutive and start at 0.')
+    return label_ids
+
+
 def in_annotation(annotation, frame_index):
     return (annotation.start_frame <= frame_index <= annotation.end_frame)
 

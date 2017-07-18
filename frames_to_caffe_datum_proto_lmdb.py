@@ -32,37 +32,7 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 
-def parse_frame_path(frame_path, frame_prefix='frame'):
-    """Convert an absolute frame path to a (video name, frame number) tuple.
-
-    >>> parse_frame_path('/a/b/video/frame1.png')
-    ('video', 1)
-    """
-    dirpath, frame_filename = path.split(frame_path)
-    frame_name = path.splitext(frame_filename)[0]
-    video_name = path.split(dirpath)[1]
-    if not video_name: return None
-
-    frame_number = re.match('^{}([0-9]*)$'.format(frame_prefix), frame_name)
-    if frame_number is None: return None  # No match
-    frame_number = int(frame_number.group(1))
-
-    return (video_name, frame_number)
-
-def frame_path_to_key(frame_path):
-    """Convert an absolute frame path to a formatted frame key.
-
-    >>> frame_path_to_key('/a/b/video/frame1.png')
-    'video-1'
-    >>> frame_path_to_key('/a/b/video_1234/frame01231.png')
-    'video_1234-1231'
-    >>> frame_path_to_key('/a/b/video_1234/frame-01231.png')  # Should be None
-    >>> frame_path_to_key('/a/b/video_1234/whatever')  # Should be None
-    >>> frame_path_to_key('/frame1.png')  # Should be None
-    """
-    frame_info = parse_frame_path(frame_path)
-    if frame_info is None: return frame_info
-    return '{}-{}'.format(*frame_info)
+from frame_loader_util import parse_frame_path, frame_path_to_key
 
 
 def load_image_datum(image_path, resize_height=None, resize_width=None):
@@ -95,6 +65,7 @@ def load_image_datum(image_path, resize_height=None, resize_width=None):
 def load_image_datum_helper(args):
     """Wrapper for load_image_datum for use with multiprocessing."""
     return load_image_datum(*args)
+
 
 def load_image_batch(pool, frame_paths, resize_height, resize_width):
     """Loads a batch of images by calling load_image_datum in parallel."""
