@@ -101,6 +101,7 @@ def main():
                         <class_name>". The class id are assumed to be
                         0-indexed unless --one-indexed-labels is specified.""")
     parser.add_argument('--output_lmdb', required=True)
+    parser.add_argument('--output_without_images_lmdb', required=False)
 
     # Optional arguments.
     parser.add_argument('--resize_width', default=None, nargs='?', type=int)
@@ -171,13 +172,28 @@ def main():
                       args.resize_height, args.resize_width)
     label_ids = load_label_ids(args.class_mapping, args.one_indexed_labels)
 
+    @contextmanager
+    def open_lmdbs():
+        if 'output_without_images_lmdb' in args:
+            with lmdb.open(args.output_lmdb,
+                           map_size=map_size).begin(write=True) \
+                    as with_images, \
+                    lmdb.open(args.output_without_images_lmdb,
+                              map_size=map_size).begin(write=True) \
+                    as without_images:
+                yield with_images, without_images
+        else:
+            with lmdb.open(args.output_lmdb, map_size=map_size).begin(
+                    write=True) as with_images:
+                yield with_images, None
+
     num_stored = 0
     loaded_images = False
     while True:
         if loaded_images:
             break
-        with lmdb.open(args.output_lmdb, map_size=map_size).begin(
-                write=True) as lmdb_transaction:
+        with open_lmdbs() as transactions:
+            lmdb_transaction, imageless_lmdb_transaction = transactions
             for _ in range(batch_size):
                 # Convert image arrays to image protocol buffers.
                 frame_path, image_array = queue.get()
@@ -185,18 +201,23 @@ def main():
 
                 video_name, frame_index = frame_path_info[frame_path]
                 if args.frames_per_second != 0:
-                    labels = collect_frame_labels(annotations[video_name],
-                                                  frame_index - 1,
-                                                  args.frames_per_second)
+                    labels = collect_frame_labels(
+                        annotations[video_name],
+                        frame_index - 1,
+                        frames_per_second=args.frames_per_second)
                 else: # args.frame_step != 0
                     labels = collect_frame_labels(annotations[video_name],
                                                   frame_index - 1,
-                                                  args.frame_step)
+                                                  frame_step=args.frame_step)
                 video_frame_proto = create_labeled_frame(
                     video_name, frame_index, image, labels, label_ids)
                 frame_key = '{}-{}'.format(video_name, frame_index)
                 lmdb_transaction.put(frame_key,
                                      video_frame_proto.SerializeToString())
+                if imageless_lmdb_transaction is not None:
+                    video_frame_proto.frame.image.data = ''
+                    imageless_lmdb_transaction.put(
+                        frame_key, video_frame_proto.SerializeToString())
                 progress.update(1)
                 num_stored += 1
                 if num_stored >= num_paths:
