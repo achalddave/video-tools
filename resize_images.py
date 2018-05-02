@@ -110,12 +110,6 @@ def main():
     num_resized = 0
     loaded_images = False
     while not loaded_images:
-        # XXX HACK XXX: Quit if a special file doesn't exist - this lets other
-        # users on the server kill my job if it gets out of hand.
-        if not path.isfile('/data/achald/delete_file_to_kill_achals_resize_script'):
-            logging.error('File at %s deleted! Exiting.' % '/data/achald/delete_file_to_kill_achals_resize_script')
-            import sys
-            sys.exit(1)
         frame_path, resized_image = queue.get()
         output_path = output_file(frame_path)
         output_dir = path.split(output_path)[0]
