@@ -85,6 +85,9 @@ def dump_frames(video_path, output_directory, frames_per_second):
 
     If frames_per_second is None, the clip's fps attribute is used instead."""
     clip = VideoFileClip(video_path)
+    if clip.rotation == 90:
+        clip = clip.resize(clip.size[::-1])
+        clip.rotation = 0
     info_path = '{}/info.json'.format(output_directory)
     name_format = '{}/frame%04d.png'.format(output_directory)
 
