@@ -114,7 +114,7 @@ def dump_frames(video_path, output_directory, frames_per_second):
     if successfully_wrote_images:
         info = {'frames_per_second': frames_per_second,
                 'input_video_path': os.path.abspath(video_path)}
-        with open(info_path, 'wb') as info_file:
+        with open(info_path, 'w') as info_file:
             json.dump(info, info_file)
 
         if not frames_already_dumped_helper():
@@ -150,7 +150,7 @@ def main():
     try:
         pool.map(dump_frames_star, dump_frames_tasks)
     except KeyboardInterrupt:
-        print 'Parent received control-c, exiting.'
+        print('Parent received control-c, exiting.')
         pool.terminate()
 
 
