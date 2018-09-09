@@ -12,7 +12,8 @@ from moviepy.editor import VideoFileClip
 from moviepy import tools as mp_tools
 from tqdm import tqdm
 
-logging.getLogger().setLevel(logging.INFO)
+from util.log import setup_logging
+
 
 def frames_already_dumped(video_path,
                           output_directory,
@@ -138,6 +139,8 @@ def main():
 
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
+
+    setup_logging(args.output_directory + '/dump_frames.py')
 
     dump_frames_tasks = []
     with open(video_list) as f:
