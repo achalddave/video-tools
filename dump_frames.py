@@ -72,6 +72,9 @@ def dump_frames(video_path, output_directory, frames_per_second):
     """Dump frames at frames_per_second from a video to output_directory.
 
     If frames_per_second is None, the clip's fps attribute is used instead."""
+    if not os.path.isdir(output_directory):
+        os.mkdir(output_directory)
+
     clip = VideoFileClip(video_path)
     if clip.rotation == 90:
         clip = clip.resize(clip.size[::-1])
@@ -149,8 +152,6 @@ def main():
             base_filename = os.path.splitext(os.path.basename(video_path))[0]
             output_video_directory = os.path.join(output_directory,
                                                   base_filename)
-            if not os.path.isdir(output_video_directory):
-                os.mkdir(output_video_directory)
             dump_frames_tasks.append((video_path, output_video_directory,
                                       frames_per_second))
 
