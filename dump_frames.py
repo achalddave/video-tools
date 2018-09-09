@@ -11,20 +11,6 @@ from multiprocessing import Pool
 from moviepy.editor import VideoFileClip
 from moviepy import tools as mp_tools
 
-parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('video_list',
-                    default=None,
-                    help='File containing new-line separated paths to videos.')
-parser.add_argument('output_directory',
-                    default=None,
-                    help='Directory to output frames to.')
-parser.add_argument('--frames_per_second',
-                    default=1,
-                    help=('Number of frames to output per second. If 0, '
-                          'dumps all frames in the clip'))
-
-args = parser.parse_args()
-
 logging.getLogger().setLevel(logging.INFO)
 
 def frames_already_dumped(video_path,
@@ -127,6 +113,20 @@ def dump_frames_star(args):
     dump_frames(*args)
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('video_list',
+                        default=None,
+                        help='File containing new-line separated paths to videos.')
+    parser.add_argument('output_directory',
+                        default=None,
+                        help='Directory to output frames to.')
+    parser.add_argument('--frames_per_second',
+                        default=1,
+                        help=('Number of frames to output per second. If 0, '
+                            'dumps all frames in the clip'))
+
+    args = parser.parse_args()
+
     video_list = args.video_list
     output_directory = args.output_directory
     frames_per_second = float(args.frames_per_second)
