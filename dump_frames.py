@@ -5,11 +5,10 @@ import json
 import logging
 import math
 import os
-
+import subprocess
 from multiprocessing import Pool
 
-from moviepy.editor import VideoFileClip
-from moviepy import tools as mp_tools
+from moviepy.video.io.VideoFileClip import VideoFileClip
 from tqdm import tqdm
 
 from util.log import setup_logging
@@ -76,27 +75,29 @@ def dump_frames(video_path, output_directory, frames_per_second):
         os.mkdir(output_directory)
 
     clip = VideoFileClip(video_path)
-    if clip.rotation == 90:
-        clip = clip.resize(clip.size[::-1])
-        clip.rotation = 0
     info_path = '{}/info.json'.format(output_directory)
     name_format = '{}/frame%04d.png'.format(output_directory)
 
-    if frames_per_second is None:
+    extract_all_frames = frames_per_second is None
+    if extract_all_frames:
         frames_per_second = clip.fps
+
     frames_already_dumped_helper = lambda: \
             frames_already_dumped(video_path, output_directory,
                                   frames_per_second, info_path,
                                   name_format, clip.duration)
+
     if frames_already_dumped_helper():
         logging.info('Frames for {} exist, skipping...'.format(video_path))
         return
 
     successfully_wrote_images = False
     try:
-        clip.write_images_sequence(
-            name_format.format(output_directory),
-            fps=frames_per_second)
+        if extract_all_frames:
+            cmd = ['ffmpeg', '-i', video_path, name_format]
+        else:
+            cmd = ['ffmpeg', '-i', video_path, '-vf', '"fps=%s"', name_format]
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         successfully_wrote_images = True
     except Exception as e:
         logging.error("Failed to dump images for %s", video_path)
@@ -113,9 +114,11 @@ def dump_frames(video_path, output_directory, frames_per_second):
                 "Images for {} don't seem to be dumped properly!".format(
                     video_path))
 
+
 def dump_frames_star(args):
     """Calls dump_frames after unpacking arguments."""
-    dump_frames(*args)
+    return dump_frames(*args)
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
