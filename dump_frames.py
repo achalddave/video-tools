@@ -10,6 +10,7 @@ from multiprocessing import Pool
 
 from moviepy.editor import VideoFileClip
 from moviepy import tools as mp_tools
+from tqdm import tqdm
 
 logging.getLogger().setLevel(logging.INFO)
 
@@ -124,6 +125,7 @@ def main():
                         default=1,
                         help=('Number of frames to output per second. If 0, '
                             'dumps all frames in the clip'))
+    parser.add_argument('--num-workers', type=int, default=4)
 
     args = parser.parse_args()
 
@@ -149,9 +151,12 @@ def main():
             dump_frames_tasks.append((video_path, output_video_directory,
                                       frames_per_second))
 
-    pool = Pool(8)
+    pool = Pool(args.num_workers)
     try:
-        pool.map(dump_frames_star, dump_frames_tasks)
+        list(
+            tqdm(
+                pool.imap_unordered(dump_frames_star, dump_frames_tasks),
+                total=len(dump_frames_tasks)))
     except KeyboardInterrupt:
         print('Parent received control-c, exiting.')
         pool.terminate()
