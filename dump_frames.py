@@ -130,7 +130,10 @@ def main():
     video_list = args.video_list
     output_directory = args.output_directory
     frames_per_second = float(args.frames_per_second)
-    if frames_per_second == 0: frames_per_second = None
+
+    if frames_per_second == 0:
+        frames_per_second = None
+
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
 
