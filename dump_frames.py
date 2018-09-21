@@ -116,9 +116,11 @@ def dump_frames(video_path, output_directory, frames_per_second):
                 "Images for {} don't seem to be dumped properly!".format(
                     video_path))
 
+
 def dump_frames_star(args):	
     """Calls dump_frames after unpacking arguments."""	
     return dump_frames(*args)
+
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -129,7 +131,7 @@ def main():
                         default=None,
                         help='Directory to output frames to.')
     parser.add_argument('--fps',
-                        default=None,
+                        default=1,
                         help=('Number of frames to output per second. If 0, '
                              'dumps all frames in the clip.'))
     parser.add_argument('--num-workers', type=int, default=4)
