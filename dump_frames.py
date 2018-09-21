@@ -116,6 +116,9 @@ def dump_frames(video_path, output_directory, frames_per_second):
                 "Images for {} don't seem to be dumped properly!".format(
                     video_path))
 
+def dump_frames_star(args):	
+    """Calls dump_frames after unpacking arguments."""	
+    return dump_frames(*args)
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -127,24 +130,23 @@ def main():
                         help='Directory to output frames to.')
     parser.add_argument('--fps',
                         default=None,
-                        help=('Number of frames to output per second. If not '
-                             'specified, dumps all frames in the clip.'))
-    parser.add_argument('--num-workers', type=int, default=1)
+                        help=('Number of frames to output per second. If 0, '
+                             'dumps all frames in the clip.'))
+    parser.add_argument('--num-workers', type=int, default=4)
 
     args = parser.parse_args()
 
     video_list = args.video_list
     output_directory = args.output_directory
+    frames_per_second = float(args.fps)
 
-    if args.fps is not None:
-        frames_per_second = float(args.fps)
-    else:
+    if frames_per_second == 0:
         frames_per_second = None
 
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
 
-    setup_logging(args.output_directory + '/dump_frames.py') 
+    setup_logging(args.output_directory + '/dump_frames.py')
 
     dump_frames_tasks = []
     with open(video_list) as f:
@@ -160,7 +162,7 @@ def main():
     try:
         list(
             tqdm(
-                pool.starmap(dump_frames, dump_frames_tasks),
+                pool.imap_unordered(dump_frames_star, dump_frames_tasks),
                 total=len(dump_frames_tasks)))
     except KeyboardInterrupt:
         print('Parent received control-c, exiting.')
