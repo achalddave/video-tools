@@ -132,7 +132,8 @@ def main():
                         default=None,
                         help='Directory to output frames to.')
     parser.add_argument('--fps',
-                        default=1,
+                        default=0,
+                        type=float,
                         help=('Number of frames to output per second. If 0, '
                               'dumps all frames in the clip.'))
     parser.add_argument('--num-workers', type=int, default=4)
