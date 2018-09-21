@@ -117,8 +117,8 @@ def dump_frames(video_path, output_directory, frames_per_second):
                     video_path))
 
 
-def dump_frames_star(args):	
-    """Calls dump_frames after unpacking arguments."""	
+def dump_frames_star(args):
+    """Calls dump_frames after unpacking arguments."""
     return dump_frames(*args)
 
 
