@@ -97,7 +97,7 @@ def dump_frames(video_path, output_directory, frames_per_second):
         if extract_all_frames:
             cmd = ['ffmpeg', '-i', video_path, name_format]
         else:
-            cmd = ['ffmpeg', '-i', video_path, '-vf', 
+            cmd = ['ffmpeg', '-i', video_path, '-vf',
                    'fps={}'.format(frames_per_second), name_format]
         subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         successfully_wrote_images = True
