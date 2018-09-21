@@ -19,7 +19,8 @@ def frames_already_dumped(video_path,
                           expected_frames_per_second,
                           expected_info_path,
                           expected_name_format,
-                          expected_duration):
+                          expected_duration,
+                          log_reason=False):
     """Check if the output directory exists and has already been processed.
 
         1) Check the info.json file to see if the parameters match.
@@ -35,6 +36,8 @@ def frames_already_dumped(video_path,
     """
     # Ensure that info file exists.
     if not os.path.isfile(expected_info_path):
+        if log_reason:
+            logging.info("Info path doesn't exist at %s" % expected_info_path)
         return False
 
     # Ensure that info file is valid.
@@ -43,6 +46,8 @@ def frames_already_dumped(video_path,
     info_valid = info['frames_per_second'] == expected_frames_per_second \
         and info['input_video_path'] == os.path.abspath(video_path)
     if not info_valid:
+        if log_reason:
+            logging.info("Info file (%s) is invalid" % expected_info_path)
         return False
 
     # Check that all frame paths exist.
@@ -59,9 +64,10 @@ def frames_already_dumped(video_path,
         for i in range(int(math.floor(expected_duration *
                                       expected_frames_per_second) - 1))
     ]
-    frames_exist = all([os.path.exists(frame_path)
-                        for frame_path in expected_frame_paths])
-    if not frames_exist:
+    missing_frames = [x for x in expected_frame_paths if not os.path.exists(x)]
+    if missing_frames:
+        if log_reason:
+            logging.info("Missing frames:\n%s" % ('\n'.join(missing_frames)))
         return False
 
     # All checks passed
@@ -86,9 +92,9 @@ def dump_frames(video_path, output_directory, frames_per_second):
     frames_already_dumped_helper = lambda: \
         frames_already_dumped(video_path, output_directory,
                               frames_per_second, info_path,
-                              name_format, clip.duration)
+                              name_format, clip.duration, log_reason)
 
-    if frames_already_dumped_helper():
+    if frames_already_dumped_helper(False):
         logging.info('Frames for {} exist, skipping...'.format(video_path))
         return
 
@@ -101,9 +107,10 @@ def dump_frames(video_path, output_directory, frames_per_second):
                    'fps={}'.format(frames_per_second), name_format]
         subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         successfully_wrote_images = True
-    except Exception as e:
+    except subprocess.CalledProcessError as e:
         logging.error("Failed to dump images for %s", video_path)
         logging.error(e)
+        logging.error(e.output.decode('utf-8'))
 
     if successfully_wrote_images:
         info = {'frames_per_second': frames_per_second,
@@ -111,7 +118,7 @@ def dump_frames(video_path, output_directory, frames_per_second):
         with open(info_path, 'w') as info_file:
             json.dump(info, info_file)
 
-        if not frames_already_dumped_helper():
+        if not frames_already_dumped_helper(True):
             logging.error(
                 "Images for {} don't seem to be dumped properly!".format(
                     video_path))
