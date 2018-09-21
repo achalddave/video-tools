@@ -38,7 +38,7 @@ def frames_already_dumped(video_path,
         return False
 
     # Ensure that info file is valid.
-    with open(expected_info_path, 'rb') as info_file:
+    with open(expected_info_path, 'r') as info_file:
         info = json.load(info_file)
     info_valid = info['frames_per_second'] == expected_frames_per_second \
         and info['input_video_path'] == os.path.abspath(video_path)
@@ -83,9 +83,9 @@ def dump_frames(video_path, output_directory, frames_per_second):
         frames_per_second = clip.fps
 
     frames_already_dumped_helper = lambda: \
-            frames_already_dumped(video_path, output_directory,
-                                  frames_per_second, info_path,
-                                  name_format, clip.duration)
+        frames_already_dumped(video_path, output_directory,
+                              frames_per_second, info_path,
+                              name_format, clip.duration)
 
     if frames_already_dumped_helper():
         logging.info('Frames for {} exist, skipping...'.format(video_path))
@@ -96,7 +96,8 @@ def dump_frames(video_path, output_directory, frames_per_second):
         if extract_all_frames:
             cmd = ['ffmpeg', '-i', video_path, name_format]
         else:
-            cmd = ['ffmpeg', '-i', video_path, '-vf', '"fps=%s"', name_format]
+            cmd = ['ffmpeg', '-i', video_path, '-vf', 
+                   'fps={}'.format(frames_per_second), name_format]
         subprocess.check_output(cmd, stderr=subprocess.STDOUT)
         successfully_wrote_images = True
     except Exception as e:
