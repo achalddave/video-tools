@@ -31,7 +31,7 @@ def frames_already_dumped(video_path,
         expected_frames_per_second (num)
         expected_info_path (str)
         expected_name_format (str)
-        expected_duration (num): Expected dration in seconds.
+        expected_duration (num): Expected duration in seconds.
     """
     # Ensure that info file exists.
     if not os.path.isfile(expected_info_path):
@@ -53,10 +53,11 @@ def frames_already_dumped(video_path,
         # moviepy, so we have to explicitly check). We can assume they start
         # with index 1, and continue.
         offset_if_one_indexed = 1
+
     expected_frame_paths = [
         expected_name_format % (i + offset_if_one_indexed)
         for i in range(int(math.floor(expected_duration *
-                                      expected_frames_per_second)))
+                                      expected_frames_per_second) - 1))
     ]
     frames_exist = all([os.path.exists(frame_path)
                         for frame_path in expected_frame_paths])
@@ -116,11 +117,6 @@ def dump_frames(video_path, output_directory, frames_per_second):
                     video_path))
 
 
-def dump_frames_star(args):
-    """Calls dump_frames after unpacking arguments."""
-    return dump_frames(*args)
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('video_list',
@@ -129,25 +125,26 @@ def main():
     parser.add_argument('output_directory',
                         default=None,
                         help='Directory to output frames to.')
-    parser.add_argument('--frames_per_second',
-                        default=1,
-                        help=('Number of frames to output per second. If 0, '
-                            'dumps all frames in the clip'))
-    parser.add_argument('--num-workers', type=int, default=4)
+    parser.add_argument('--fps',
+                        default=None,
+                        help=('Number of frames to output per second. If not '
+                             'specified, dumps all frames in the clip.'))
+    parser.add_argument('--num-workers', type=int, default=1)
 
     args = parser.parse_args()
 
     video_list = args.video_list
     output_directory = args.output_directory
-    frames_per_second = float(args.frames_per_second)
 
-    if frames_per_second == 0:
+    if args.fps is not None:
+        frames_per_second = float(args.fps)
+    else:
         frames_per_second = None
 
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
 
-    setup_logging(args.output_directory + '/dump_frames.py')
+    setup_logging(args.output_directory + '/dump_frames.py') 
 
     dump_frames_tasks = []
     with open(video_list) as f:
@@ -163,7 +160,7 @@ def main():
     try:
         list(
             tqdm(
-                pool.imap_unordered(dump_frames_star, dump_frames_tasks),
+                pool.starmap(dump_frames, dump_frames_tasks),
                 total=len(dump_frames_tasks)))
     except KeyboardInterrupt:
         print('Parent received control-c, exiting.')
