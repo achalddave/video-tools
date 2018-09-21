@@ -85,7 +85,6 @@ def main():
     logging.basicConfig(format='%(asctime)s.%(msecs).03d: %(message)s',
                         datefmt='%H:%M:%S')
 
-    map_size = int(500e9)
     batch_size = 5000
 
     def output_file(frame_path):
