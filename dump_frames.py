@@ -89,7 +89,7 @@ def dump_frames(video_path, output_directory, frames_per_second):
     if extract_all_frames:
         frames_per_second = clip.fps
 
-    frames_already_dumped_helper = lambda: \
+    frames_already_dumped_helper = lambda log_reason: \
         frames_already_dumped(video_path, output_directory,
                               frames_per_second, info_path,
                               name_format, clip.duration, log_reason)
