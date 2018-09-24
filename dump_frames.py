@@ -8,7 +8,7 @@ import os
 import subprocess
 from multiprocessing import Pool
 
-from moviepy.video.io.VideoFileClip import VideoFileClip
+from moviepy.video.io.ffmpeg_reader import ffmpeg_parse_infos
 from tqdm import tqdm
 
 from util.log import setup_logging
@@ -81,18 +81,25 @@ def dump_frames(video_path, output_directory, frames_per_second):
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
 
-    clip = VideoFileClip(video_path)
+    try:
+        video_info = ffmpeg_parse_infos(video_path)
+        video_fps = video_info['video_fps']
+        video_duration = video_info['duration']
+    except OSError as e:
+        logging.error('Unable to open video (%s), skipping.' % video_path)
+        logging.exception('Exception:')
+        return
     info_path = '{}/info.json'.format(output_directory)
     name_format = '{}/frame%04d.png'.format(output_directory)
 
     extract_all_frames = frames_per_second is None
     if extract_all_frames:
-        frames_per_second = clip.fps
+        frames_per_second = video_fps
 
     frames_already_dumped_helper = lambda log_reason: \
         frames_already_dumped(video_path, output_directory,
                               frames_per_second, info_path,
-                              name_format, clip.duration, log_reason)
+                              name_format, video_duration, log_reason)
 
     if frames_already_dumped_helper(False):
         logging.info('Frames for {} exist, skipping...'.format(video_path))
