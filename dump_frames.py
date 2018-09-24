@@ -74,12 +74,15 @@ def frames_already_dumped(video_path,
     return True
 
 
-def dump_frames(video_path, output_directory, frames_per_second):
+def dump_frames(video_path, output_directory, frames_per_second,
+                file_logger_name):
     """Dump frames at frames_per_second from a video to output_directory.
 
     If frames_per_second is None, the clip's fps attribute is used instead."""
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
+
+    file_logger = logging.getLogger(file_logger_name)
 
     try:
         video_info = ffmpeg_parse_infos(video_path)
@@ -102,7 +105,7 @@ def dump_frames(video_path, output_directory, frames_per_second):
                               name_format, video_duration, log_reason)
 
     if frames_already_dumped_helper(False):
-        logging.info('Frames for {} exist, skipping...'.format(video_path))
+        file_logger.info('Frames for {} exist, skipping...'.format(video_path))
         return
 
     successfully_wrote_images = False
@@ -164,7 +167,8 @@ def main():
     if not os.path.isdir(output_directory):
         os.mkdir(output_directory)
 
-    setup_logging(args.output_directory + '/dump_frames.py')
+    logging_path = args.output_directory + '/dump_frames.py'
+    setup_logging(logging_path)
 
     dump_frames_tasks = []
     with open(video_list) as f:
@@ -174,7 +178,7 @@ def main():
             output_video_directory = os.path.join(output_directory,
                                                   base_filename)
             dump_frames_tasks.append((video_path, output_video_directory,
-                                      frames_per_second))
+                                      frames_per_second, logging_path))
 
     pool = Pool(args.num_workers)
     try:
