@@ -92,6 +92,11 @@ def dump_frames(video_path, output_directory, frames_per_second,
         logging.error('Unable to open video (%s), skipping.' % video_path)
         logging.exception('Exception:')
         return
+    except KeyError as e:
+        logging.error('Unable to extract metadata about video (%s), skipping.'
+                      % video_path)
+        logging.exception('Exception:')
+        return
     info_path = '{}/info.json'.format(output_directory)
     name_format = '{}/frame%04d.png'.format(output_directory)
 
