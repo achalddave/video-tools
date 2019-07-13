@@ -7,6 +7,7 @@ import math
 import os
 import subprocess
 from multiprocessing import Pool
+from pathlib import Path
 
 from moviepy.video.io.ffmpeg_reader import ffmpeg_parse_infos
 from tqdm import tqdm
@@ -19,7 +20,6 @@ def frames_already_dumped(video_path,
                           expected_frames_per_second,
                           expected_info_path,
                           expected_name_format,
-                          expected_duration,
                           log_reason=False):
     """Check if the output directory exists and has already been processed.
 
@@ -32,7 +32,6 @@ def frames_already_dumped(video_path,
         expected_frames_per_second (num)
         expected_info_path (str)
         expected_name_format (str)
-        expected_duration (num): Expected duration in seconds.
     """
     # Ensure that info file exists.
     if not os.path.isfile(expected_info_path):
@@ -59,10 +58,18 @@ def frames_already_dumped(video_path,
         # with index 1, and continue.
         offset_if_one_indexed = 1
 
+    # https://stackoverflow.com/a/28376817/1291812
+    num_frames_cmd = [
+        'ffprobe', '-v', 'error', '-select_streams', 'v:0', '-show_entries',
+        'stream=nb_frames', '-of', 'default=nokey=1:noprint_wrappers=1',
+        video_path
+    ]
+    expected_num_frames = subprocess.check_output(num_frames_cmd,
+                                                  stderr=subprocess.STDOUT)
+    expected_num_frames = int(expected_num_frames.decode().strip())
     expected_frame_paths = [
         expected_name_format % (i + offset_if_one_indexed)
-        for i in range(int(math.floor(expected_duration *
-                                      expected_frames_per_second) - 1))
+        for i in range(expected_num_frames)
     ]
     missing_frames = [x for x in expected_frame_paths if not os.path.exists(x)]
     if missing_frames:
@@ -107,7 +114,7 @@ def dump_frames(video_path, output_directory, frames_per_second,
     frames_already_dumped_helper = lambda log_reason: \
         frames_already_dumped(video_path, output_directory,
                               frames_per_second, info_path,
-                              name_format, video_duration, log_reason)
+                              name_format, log_reason)
 
     if frames_already_dumped_helper(False):
         file_logger.info('Frames for {} exist, skipping...'.format(video_path))
@@ -151,6 +158,7 @@ def main():
         default=None,
         help='File containing new-line separated paths to videos.')
     parser.add_argument('output_directory',
+                        type=Path,
                         default=None,
                         help='Directory to output frames to.')
     parser.add_argument('--fps',
@@ -169,10 +177,9 @@ def main():
     if frames_per_second == 0:
         frames_per_second = None
 
-    if not os.path.isdir(output_directory):
-        os.mkdir(output_directory)
+    output_directory.mkdir(exist_ok=True, parents=True)
 
-    logging_path = args.output_directory + '/dump_frames.py'
+    logging_path = str(output_directory) + '/dump_frames.py'
     setup_logging(logging_path)
 
     dump_frames_tasks = []
