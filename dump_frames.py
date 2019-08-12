@@ -181,6 +181,7 @@ def main():
 
     logging_path = str(output_directory) + '/dump_frames.py'
     setup_logging(logging_path)
+    logging.info('Args:\n%s', vars(args))
 
     dump_frames_tasks = []
     with open(video_list) as f:
@@ -191,6 +192,9 @@ def main():
                                                   base_filename)
             dump_frames_tasks.append((video_path, output_video_directory,
                                       frames_per_second, logging_path))
+    file_logger = logging.getLogger(logging_path)
+    file_logger.info('Videos:\n%s',
+                     '\n'.join([x[0] for x in dump_frames_tasks]))
 
     pool = Pool(args.num_workers)
     try:
